@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sid Finds | Keyword Intelligence Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root{
+      --bg:#071428;
+      --panel:#0d1d38;
+      --panel2:#102544;
+      --card:#ffffff;
+      --ink:#122033;
+      --muted:#667085;
+      --blue:#1455d9;
+      --blue2:#0b75ff;
+      --red:#e3293a;
+      --green:#12b76a;
+      --amber:#f79009;
+      --line:#dbe4f0;
+      --soft:#f6f9ff;
+      --shadow:0 22px 55px rgba(2,8,23,.22);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(20,85,217,.34), transparent 32%),
+        radial-gradient(circle at 82% 0%, rgba(227,41,58,.18), transparent 26%),
+        linear-gradient(135deg,#071428 0%,#0b1e3d 42%,#071428 100%);
+      color:#fff;
+      min-height:100vh;
+    }
+    .wrap{width:min(1440px,94vw);margin:0 auto;padding:28px 0 46px}
+    .hero{
+      display:grid;
+      grid-template-columns:1.35fr .65fr;
+      gap:20px;
+      align-items:stretch;
+      margin-bottom:20px;
+    }
+    .hero-main,.hero-side,.panel{
+      border:1px solid rgba(255,255,255,.14);
+      background:linear-gradient(145deg,rgba(255,255,255,.13),rgba(255,255,255,.04));
+      border-radius:28px;
+      box-shadow:var(--shadow);
+      backdrop-filter:blur(14px);
+    }
+    .hero-main{padding:30px;position:relative;overflow:hidden}
+    .hero-main:after{
+      content:"";
+      position:absolute;right:-90px;top:-90px;width:270px;height:270px;border-radius:50%;
+      background:rgba(227,41,58,.2);filter:blur(5px)
+    }
+    .kicker{display:inline-flex;gap:9px;align-items:center;padding:8px 12px;border:1px solid rgba(255,255,255,.18);border-radius:999px;background:rgba(255,255,255,.08);font-size:13px;color:#dce8ff}
+    .dot{width:9px;height:9px;border-radius:50%;background:var(--green);box-shadow:0 0 16px var(--green)}
+    h1{font-size:clamp(34px,4vw,58px);line-height:1;margin:18px 0 12px;letter-spacing:-1.8px}
+    .hero p{color:#d7e4ff;font-size:16px;line-height:1.65;max-width:860px;margin:0}
+    .hero-side{padding:22px;display:grid;gap:14px}
+    .mini-stat{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:16px}
+    .mini-stat b{font-size:30px;display:block}.mini-stat span{font-size:13px;color:#cbd8ef}
+    .toolbar{display:flex;flex-wrap:wrap;gap:12px;margin-top:22px}
+    button,.file-label{
+      appearance:none;border:none;border-radius:14px;padding:12px 15px;font-weight:800;cursor:pointer;
+      transition:.2s transform,.2s box-shadow,.2s background;
+    }
+    button:hover,.file-label:hover{transform:translateY(-1px)}
+    .btn-primary{background:linear-gradient(135deg,var(--blue),var(--blue2));color:white;box-shadow:0 14px 26px rgba(20,85,217,.32)}
+    .btn-danger{background:linear-gradient(135deg,#ff4154,#bd1020);color:white;box-shadow:0 14px 26px rgba(227,41,58,.27)}
+    .btn-light{background:white;color:#14315f}.btn-ghost{background:rgba(255,255,255,.12);color:white;border:1px solid rgba(255,255,255,.2)}
+    .grid{display:grid;gap:18px}.grid-4{grid-template-columns:repeat(4,1fr)}.grid-3{grid-template-columns:repeat(3,1fr)}.grid-2{grid-template-columns:1fr 1fr}
+    .panel{padding:22px;margin-top:18px}
+    .section-title{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:16px}
+    .section-title h2{margin:0;font-size:24px;letter-spacing:-.6px}.section-title p{margin:5px 0 0;color:#cbd8ef;font-size:14px;line-height:1.45}
+    .source-card{background:white;color:var(--ink);border-radius:23px;padding:18px;border:1px solid #e7eef8;box-shadow:0 15px 35px rgba(2,8,23,.12)}
+    .source-card h3{margin:0 0 8px;font-size:18px}.source-card p{margin:0 0 14px;color:var(--muted);font-size:13px;line-height:1.45}
+    .file-label{display:flex;align-items:center;justify-content:center;min-height:46px;background:var(--soft);border:1px dashed #aec4e7;color:#174179;text-align:center}
+    input[type=file]{display:none}
+    .status{margin-top:11px;font-size:12px;color:var(--muted);min-height:18px}.ok{color:var(--green);font-weight:800}.warn{color:var(--amber);font-weight:800}.bad{color:var(--red);font-weight:800}
+    textarea,input[type=text],input[type=number],select{
+      width:100%;border:1px solid #d9e4f3;border-radius:14px;padding:12px;background:white;color:var(--ink);font:inherit;outline:none;
+    }
+    textarea{min-height:88px;resize:vertical}.controls{display:grid;grid-template-columns:1fr 160px 160px;gap:12px;align-items:end}
+    .white-panel{background:white;color:var(--ink);border-radius:24px;padding:20px;box-shadow:0 18px 38px rgba(2,8,23,.14);border:1px solid #e7eef8}
+    .metric-row{display:grid;grid-template-columns:repeat(5,1fr);gap:14px}
+    .metric{background:linear-gradient(180deg,#fff,#f7faff);border:1px solid #e1eafa;border-radius:20px;padding:15px;color:var(--ink)}
+    .metric span{display:block;color:var(--muted);font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.5px}.metric b{display:block;font-size:30px;letter-spacing:-1px;margin-top:6px}.metric small{color:var(--muted)}
+    .chart-box{height:315px}.chart-box canvas{max-height:315px}
+    table{width:100%;border-collapse:separate;border-spacing:0 10px;color:var(--ink);font-size:13px}
+    th{text-align:left;color:#465a78;font-size:11px;text-transform:uppercase;letter-spacing:.6px;padding:0 10px 4px;white-space:nowrap}
+    td{background:white;border-top:1px solid #e8eff9;border-bottom:1px solid #e8eff9;padding:13px 10px;vertical-align:middle}
+    td:first-child{border-left:1px solid #e8eff9;border-radius:14px 0 0 14px}td:last-child{border-right:1px solid #e8eff9;border-radius:0 14px 14px 0}
+    .kw{font-weight:900;color:#0d2447}.sub{display:block;color:var(--muted);font-size:11px;margin-top:4px}.pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:6px 9px;font-size:11px;font-weight:900;white-space:nowrap}
+    .p-high{background:#e8fff4;color:#04744a}.p-med{background:#fff7e8;color:#a75d00}.p-low{background:#eef4ff;color:#1849a9}.p-red{background:#fff0f2;color:#bd1020}.p-dark{background:#e7ecf5;color:#243b61}
+    .score{display:flex;align-items:center;gap:9px;font-weight:900}.bar{width:70px;height:9px;background:#edf2f7;border-radius:99px;overflow:hidden}.bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--red),var(--amber),var(--green))}
+    .recommend{max-width:300px;line-height:1.42}.table-wrap{overflow:auto;padding-bottom:6px}.empty{text-align:center;color:#73829a;padding:28px;background:#f8fbff;border:1px dashed #ccd9ec;border-radius:18px}
+    .insight-list{display:grid;gap:12px}.insight{border-left:5px solid var(--blue);background:#f7faff;border-radius:16px;padding:14px}.insight b{display:block;margin-bottom:4px}.insight span{color:var(--muted);font-size:13px;line-height:1.45}
+    .api-roadmap{display:grid;gap:12px}.step{display:grid;grid-template-columns:42px 1fr;gap:12px;align-items:start;padding:14px;background:#f8fbff;border:1px solid #e4ecf8;border-radius:17px}.step-num{height:34px;width:34px;border-radius:12px;display:grid;place-items:center;background:#0b75ff;color:white;font-weight:900}.step h4{margin:0 0 4px}.step p{margin:0;color:var(--muted);line-height:1.45;font-size:13px}
+    .footer-note{color:#cbd8ef;text-align:center;margin-top:18px;font-size:13px}
+    @media(max-width:1100px){.hero,.grid-4,.grid-3,.grid-2,.metric-row,.controls{grid-template-columns:1fr}.hero-side{grid-template-columns:repeat(3,1fr)}}
+    @media(max-width:700px){.wrap{width:94vw;padding-top:15px}.hero-main,.panel{padding:18px;border-radius:22px}.hero-side{grid-template-columns:1fr}table{min-width:980px}.toolbar button{width:100%}}
+    @media print{body{background:white;color:#111}.hero,.panel{box-shadow:none;border:1px solid #ddd;background:white;color:#111}.source-card,.white-panel{box-shadow:none}.toolbar,.source-card,.controls,.api-roadmap{display:none}.table-wrap{overflow:visible}td,th{font-size:10px}}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="hero">
+      <div class="hero-main">
+        <div class="kicker"><span class="dot"></span> MVP 1: CSV-first keyword intelligence</div>
+        <h1>Sid Finds</h1>
+        <p>Upload RankNow, Google Search Console, Google Analytics and Google Trends exports. The dashboard combines ranking, impressions, CTR, trend movement and conversion intent to recommend the keywords the digital team should push for maximum reach.</p>
+        <div class="toolbar">
+          <button class="btn-primary" id="loadSample">Load sample hospital data</button>
+          <button class="btn-light" id="exportCsv">Export recommendations CSV</button>
+          <button class="btn-ghost" onclick="window.print()">Print / Save PDF</button>
+          <button class="btn-danger" id="resetAll">Reset dashboard</button>
+        </div>
+      </div>
+      <aside class="hero-side">
+        <div class="mini-stat"><b id="heroKeywords">0</b><span>Keywords analyzed</span></div>
+        <div class="mini-stat"><b id="heroPriority">0</b><span>High-priority pushes</span></div>
+        <div class="mini-stat"><b id="heroDept">0</b><span>Departments detected</span></div>
+      </aside>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
+        <div><h2>1. Upload data sources</h2><p>CSV exports are enough for the first working version. APIs come later after the scoring logic is useful.</p></div>
+      </div>
+      <div class="grid grid-4">
+        <div class="source-card">
+          <h3>Google Search Console</h3>
+          <p>Best source for actual search queries: clicks, impressions, CTR and average position.</p>
+          <label class="file-label">Upload GSC CSV<input type="file" id="gscFile" accept=".csv" /></label>
+          <div class="status" id="gscStatus">Expected columns: query, clicks, impressions, ctr, position, page</div>
+        </div>
+        <div class="source-card">
+          <h3>RankNow</h3>
+          <p>Use this for current rank, previous rank, ranking URL and movement.</p>
+          <label class="file-label">Upload RankNow CSV<input type="file" id="rankFile" accept=".csv" /></label>
+          <div class="status" id="rankStatus">Expected columns: keyword, rank, previous rank, url</div>
+        </div>
+        <div class="source-card">
+          <h3>Google Analytics 4</h3>
+          <p>Use this for page traffic and conversion context after people land on the site.</p>
+          <label class="file-label">Upload GA4 CSV<input type="file" id="gaFile" accept=".csv" /></label>
+          <div class="status" id="gaStatus">Expected columns: landing page, users, sessions, conversions</div>
+        </div>
+        <div class="source-card">
+          <h3>Google Trends</h3>
+          <p>Use this for trend interest, rising searches and region-wise demand signal.</p>
+          <label class="file-label">Upload Trends CSV<input type="file" id="trendFile" accept=".csv" /></label>
+          <div class="status" id="trendStatus">Expected columns: keyword, interest, growth</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
+        <div><h2>2. Add manual keywords</h2><p>Use this when the digital head has campaign ideas but no data export yet.</p></div>
+      </div>
+      <div class="white-panel">
+        <div class="controls">
+          <div>
+            <label><b>Manual keyword list</b></label>
+            <textarea id="manualKeywords" placeholder="Example:\ncardiologist in raipur\nkidney specialist raipur\nemergency hospital near me"></textarea>
+          </div>
+          <div>
+            <label><b>City focus</b></label>
+            <input type="text" id="cityFocus" value="Raipur" />
+          </div>
+          <div>
+            <label><b>Minimum score</b></label>
+            <input type="number" id="minScore" value="0" min="0" max="100" />
+          </div>
+        </div>
+        <div class="toolbar" style="margin-top:14px">
+          <button class="btn-primary" id="analyzeManual">Analyze keywords</button>
+          <button class="btn-light" id="sortHigh">Sort by highest priority</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
+        <div><h2>3. Executive summary</h2><p>The answer a digital head needs: what to push, what to fix, and where opportunity is leaking.</p></div>
+      </div>
+      <div class="metric-row">
+        <div class="metric"><span>Total impressions</span><b id="mImpressions">0</b><small>From Search Console</small></div>
+        <div class="metric"><span>Total clicks</span><b id="mClicks">0</b><small>From Search Console</small></div>
+        <div class="metric"><span>Avg CTR</span><b id="mCtr">0%</b><small>Clicks / impressions</small></div>
+        <div class="metric"><span>Quick wins</span><b id="mQuickWins">0</b><small>Rank 4–20 + intent</small></div>
+        <div class="metric"><span>CTR leaks</span><b id="mLeaks">0</b><small>High impressions + low CTR</small></div>
+      </div>
+    </section>
+
+    <section class="grid grid-2">
+      <div class="panel">
+        <div class="section-title"><div><h2>Department opportunity</h2><p>Shows which service lines deserve more digital content focus.</p></div></div>
+        <div class="white-panel chart-box"><canvas id="deptChart"></canvas><div id="deptFallback" class="empty" style="display:none">Load data to see department chart.</div></div>
+      </div>
+      <div class="panel">
+        <div class="section-title"><div><h2>Priority mix</h2><p>Splits keywords into high, medium and low action priority.</p></div></div>
+        <div class="white-panel chart-box"><canvas id="priorityChart"></canvas><div id="priorityFallback" class="empty" style="display:none">Load data to see priority chart.</div></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
+        <div><h2>4. Keyword recommendation table</h2><p>Sorted by priority score. Start action from the top row.</p></div>
+        <select id="departmentFilter" style="max-width:230px"><option value="all">All departments</option></select>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Keyword</th><th>Dept</th><th>Intent</th><th>Score</th><th>Rank</th><th>Impr.</th><th>CTR</th><th>Trend</th><th>Signal</th><th>Recommended action</th>
+            </tr>
+          </thead>
+          <tbody id="keywordRows"><tr><td colspan="10"><div class="empty">Upload CSV files or load sample data to begin.</div></td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="grid grid-2">
+      <div class="panel">
+        <div class="section-title"><div><h2>5. Auto insights</h2><p>Plain-English interpretation of the table.</p></div></div>
+        <div class="white-panel insight-list" id="insights"><div class="empty">Insights will appear after analysis.</div></div>
+      </div>
+      <div class="panel">
+        <div class="section-title"><div><h2>API learning roadmap</h2><p>This is how we will convert the MVP into a live connected system.</p></div></div>
+        <div class="white-panel api-roadmap">
+          <div class="step"><div class="step-num">1</div><div><h4>CSV MVP</h4><p>First we prove the scoring logic with exports. No keys, no secrets, no backend needed.</p></div></div>
+          <div class="step"><div class="step-num">2</div><div><h4>Google Search Console API</h4><p>Next we connect query, page, clicks, impressions, CTR and average position through OAuth.</p></div></div>
+          <div class="step"><div class="step-num">3</div><div><h4>GA4 Data API</h4><p>Then we pull users, sessions and conversions by landing page to understand real business value.</p></div></div>
+          <div class="step"><div class="step-num">4</div><div><h4>RankNow integration</h4><p>If RankNow provides API access, we connect it. If not, scheduled CSV upload remains practical.</p></div></div>
+          <div class="step"><div class="step-num">5</div><div><h4>Trends layer</h4><p>Google Trends can be added carefully, but we keep it separate because official API support is limited.</p></div></div>
+        </div>
+      </div>
+    </section>
+
+    <div class="footer-note">Built for digital healthcare marketing decisions. Keep private API keys out of frontend code.</div>
+  </main>
+
+<script>
+const state = { gsc: [], rank: [], ga: [], trends: [], manual: [], keywords: [], charts: {} };
+const aliases = {
+  keyword:['query','keyword','keywords','search query','search term','term','search_term'],
+  clicks:['clicks','click','total clicks'], impressions:['impressions','impr','total impressions'],
+  ctr:['ctr','click through rate','click-through rate','avg ctr'], position:['position','avg position','average position','rank','current rank','current position','google rank'],
+  prevRank:['previous rank','previous position','last rank','rank before','old rank'], page:['page','landing page','landing_page','url','page path','final url','ranking url'],
+  users:['users','active users','total users'], sessions:['sessions','session'], conversions:['conversions','key events','goals','leads','appointments'], revenue:['revenue','total revenue'],
+  interest:['interest','trend','trend score','search interest','value'], growth:['growth','change','change %','rising','rising %','percent change']
+};
+const deptRules = [
+  {dept:'Cardiac', terms:['heart','cardiac','cardio','cardiologist','bypass','angioplasty','cabg','chest pain','heart attack','valve']},
+  {dept:'Renal', terms:['kidney','renal','nephro','nephrologist','dialysis','creatinine','ckd','urine','transplant']},
+  {dept:'Neuro', terms:['neuro','neurologist','brain','stroke','paralysis','seizure','epilepsy','spine','headache']},
+  {dept:'Oncology', terms:['cancer','onco','oncologist','chemotherapy','radiation','tumor','breast cancer','blood cancer']},
+  {dept:'Emergency', terms:['emergency','er','ambulance','accident','trauma','24x7','near me','urgent']},
+  {dept:'Orthopedics', terms:['ortho','orthopedic','bone','joint','knee','hip','fracture','arthritis']},
+  {dept:'Gastro', terms:['gastro','liver','stomach','appendix','gallbladder','endoscopy','hepatitis']},
+  {dept:'Mother & Child', terms:['pregnancy','delivery','gynecologist','gynae','child','pediatric','paediatric','newborn']},
+  {dept:'General Medicine', terms:['physician','general medicine','fever','diabetes','bp','hypertension','thyroid']},
+  {dept:'Diagnostics', terms:['checkup','health check','test','scan','mri','ct scan','blood test','screening']}
+];
+function norm(s){return String(s||'').trim().toLowerCase().replace(/\s+/g,' ')}
+function cleanHeader(s){return norm(s).replace(/^\ufeff/,'')}
+function num(v){
+  if(v===undefined||v===null||v==='') return 0;
+  let s = String(v).replace(/,/g,'').replace(/%/g,'').replace(/[<>]/g,'').trim();
+  let n = parseFloat(s); return Number.isFinite(n)?n:0;
+}
+function pct(v){let n=num(v); if(n>1) n=n/100; return Math.max(0,n)}
+function get(row, keys){
+  const map = {}; Object.keys(row).forEach(k=>map[cleanHeader(k)] = row[k]);
+  for(const k of keys){const ck=cleanHeader(k); if(map[ck]!==undefined) return map[ck];}
+  const all = Object.keys(map);
+  for(const k of keys){const found = all.find(h=>h.includes(cleanHeader(k))); if(found) return map[found];}
+  return '';
+}
+function parseCSV(text){
+  const rows=[]; let row=[], cell='', q=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i], n=text[i+1];
+    if(c==='"' && q && n==='"'){cell+='"';i++;continue}
+    if(c==='"'){q=!q;continue}
+    if(c===',' && !q){row.push(cell);cell='';continue}
+    if((c==='\n'||c==='\r') && !q){ if(c==='\r'&&n==='\n') i++; row.push(cell); if(row.some(x=>String(x).trim()!=='')) rows.push(row); row=[]; cell=''; continue}
+    cell+=c;
+  }
+  row.push(cell); if(row.some(x=>String(x).trim()!=='')) rows.push(row);
+  if(!rows.length) return [];
+  const headers = rows[0].map(h=>String(h).trim());
+  return rows.slice(1).map(r=>{const o={}; headers.forEach((h,i)=>o[h]=r[i]||''); return o;});
+}
+async function readFile(file){return await file.text()}
+async function handleFile(inputId, type, statusId){
+  const input=document.getElementById(inputId);
+  const file=input.files[0]; if(!file) return;
+  try{const rows=parseCSV(await readFile(file)); state[type]=rows; document.getElementById(statusId).innerHTML=`<span class="ok">Loaded ${rows.length} rows</span> from ${file.name}`; analyze();}
+  catch(e){document.getElementById(statusId).innerHTML=`<span class="bad">Could not read CSV.</span>`; console.error(e)}
+}
+['gscFile','rankFile','gaFile','trendFile'].forEach((id,idx)=>{
+  const types=['gsc','rank','ga','trends']; const statuses=['gscStatus','rankStatus','gaStatus','trendStatus'];
+  document.getElementById(id).addEventListener('change',()=>handleFile(id,types[idx],statuses[idx]));
+});
+function detectDept(keyword){
+  const k=norm(keyword);
+  for(const d of deptRules){ if(d.terms.some(t=>k.includes(t))) return d.dept; }
+  return 'Generic / Brand';
+}
+function detectIntent(keyword){
+  const k=norm(keyword);
+  if(['emergency','ambulance','accident','near me','urgent','24x7'].some(t=>k.includes(t))) return 'Urgent';
+  if(['doctor','specialist','hospital','surgery','treatment','cost','raipur','appointment'].some(t=>k.includes(t))) return 'High intent';
+  if(['symptoms','causes','meaning','home remedy','what is'].some(t=>k.includes(t))) return 'Informational';
+  return 'Mixed';
+}
+function expectedCtr(pos){ if(!pos) return .03; if(pos<=3) return .16; if(pos<=10) return .05; if(pos<=20) return .022; return .01; }
+function getSignal(k){
+  const signals=[];
+  if(k.impressions>500 && k.ctr < expectedCtr(k.position||k.rankCurrent)) signals.push('CTR leak');
+  if((k.rankCurrent>=4 && k.rankCurrent<=20) || (k.position>=4 && k.position<=20)) signals.push('SEO quick win');
+  if(k.trendScore>=14) signals.push('Rising demand');
+  if(k.rankDelta>0) signals.push('Rank improving');
+  if(k.rankDelta<0) signals.push('Rank falling');
+  if(!signals.length) signals.push('Monitor');
+  return signals.join(' + ');
+}
+function recommendation(k){
+  if(k.signal.includes('CTR leak')) return 'Rewrite SEO title and meta description. Add clearer local intent, department name and appointment CTA.';
+  if(k.signal.includes('SEO quick win') && k.signal.includes('Rising demand')) return 'Make this a weekly push: landing page refresh, FAQ block, reel, GMB post and internal links.';
+  if(k.intent==='Urgent') return 'Prioritize local SEO, Google Business Profile updates, emergency CTA, call button and ambulance keyword variants.';
+  if(k.score>=75) return 'Create or refresh dedicated landing page and build supporting blogs, reels and doctor-led FAQs.';
+  if(k.score>=55) return 'Use in social captions, page headings, FAQ schema and internal links. Track ranking weekly.';
+  return 'Keep as supporting keyword. Use only when relevant to content theme.';
+}
+function priority(score){ if(score>=70) return 'High'; if(score>=45) return 'Medium'; return 'Low'; }
+function calcScore(item){
+  const impr = item.impressions||0, clicks=item.clicks||0;
+  const demand = Math.min(25, Math.log10(impr+1)*7.0);
+  let trend = 0;
+  if(item.trendInterest) trend += Math.min(15, item.trendInterest*.15);
+  if(item.trendGrowth) trend += Math.max(0, Math.min(7, item.trendGrowth/20));
+  const pos = item.rankCurrent || item.position || 0;
+  let reach = 5;
+  if(pos){ if(pos<=3) reach=12; else if(pos<=10) reach=20; else if(pos<=20) reach=18; else if(pos<=50) reach=9; else reach=4; }
+  const intent = detectIntent(item.keyword);
+  let conv = 7;
+  if(intent==='Urgent') conv=24; else if(intent==='High intent') conv=21; else if(intent==='Mixed') conv=13; else conv=8;
+  const localBoost = norm(item.keyword).includes(norm(document.getElementById('cityFocus').value||'Raipur')) ? 4 : 0;
+  const ctr = item.ctr || (impr ? clicks/impr : 0);
+  let gap = 0;
+  if(impr>500 && ctr < expectedCtr(pos)) gap += 8;
+  if(pos>=4 && pos<=20) gap += 6;
+  let ga = 0; if(item.gaConversions>0) ga += Math.min(6,item.gaConversions*1.5); if(item.gaUsers>100) ga += 2;
+  return Math.round(Math.min(100, demand + trend + reach + conv + localBoost + gap + ga));
+}
+function mergeByKeyword(){
+  const map = new Map();
+  const ensure = (kw)=>{const key=norm(kw); if(!key) return null; if(!map.has(key)) map.set(key,{keyword:String(kw).trim(),clicks:0,impressions:0,ctr:0,position:0,rankCurrent:0,rankPrev:0,rankDelta:0,trendInterest:0,trendGrowth:0,page:'',gaUsers:0,gaSessions:0,gaConversions:0}); return map.get(key)};
+  state.gsc.forEach(r=>{const kw=get(r,aliases.keyword); const x=ensure(kw); if(!x) return; x.clicks+=num(get(r,aliases.clicks)); x.impressions+=num(get(r,aliases.impressions)); const c=pct(get(r,aliases.ctr)); if(c) x.ctr=c; const p=num(get(r,aliases.position)); if(p) x.position = x.position ? ((x.position+p)/2) : p; const pg=get(r,aliases.page); if(pg&&!x.page)x.page=pg;});
+  state.rank.forEach(r=>{const kw=get(r,aliases.keyword); const x=ensure(kw); if(!x) return; const rank=num(get(r,aliases.position)); const prev=num(get(r,aliases.prevRank)); if(rank)x.rankCurrent=rank; if(prev)x.rankPrev=prev; if(rank&&prev)x.rankDelta=prev-rank; const pg=get(r,aliases.page); if(pg&&!x.page)x.page=pg;});
+  state.trends.forEach(r=>{const kw=get(r,aliases.keyword); const x=ensure(kw); if(!x) return; x.trendInterest=Math.max(x.trendInterest,num(get(r,aliases.interest))); x.trendGrowth=Math.max(x.trendGrowth,num(get(r,aliases.growth)));});
+  state.manual.forEach(kw=>ensure(kw));
+  const pageMap = new Map();
+  state.ga.forEach(r=>{const page=norm(get(r,aliases.page)); if(!page) return; pageMap.set(page,{users:num(get(r,aliases.users)),sessions:num(get(r,aliases.sessions)),conversions:num(get(r,aliases.conversions)),revenue:num(get(r,aliases.revenue))});});
+  map.forEach(x=>{ if(x.page){ const m = pageMap.get(norm(x.page)) || [...pageMap.entries()].find(([p])=>p.includes(norm(x.page))||norm(x.page).includes(p))?.[1]; if(m){x.gaUsers=m.users;x.gaSessions=m.sessions;x.gaConversions=m.conversions;} } });
+  return [...map.values()];
+}
+function analyze(){
+  const manual = document.getElementById('manualKeywords').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  state.manual = manual;
+  const minScore = Number(document.getElementById('minScore').value||0);
+  let rows = mergeByKeyword().map(x=>{
+    x.department=detectDept(x.keyword); x.intent=detectIntent(x.keyword); x.trendScore=Math.min(20, (x.trendInterest||0)*.15 + Math.max(0,(x.trendGrowth||0)/20));
+    x.score=calcScore(x); x.priority=priority(x.score); x.signal=getSignal(x); x.recommendation=recommendation(x); return x;
+  }).filter(x=>x.score>=minScore).sort((a,b)=>b.score-a.score);
+  state.keywords = rows;
+  render();
+}
+function fmt(n){return Math.round(n||0).toLocaleString('en-IN')}
+function fmtPct(n){return ((n||0)*100).toFixed(1)+'%'}
+function pill(text, cls){return `<span class="pill ${cls}">${text}</span>`}
+function render(){
+  const rows=state.keywords; const deptFilter=document.getElementById('departmentFilter');
+  const depts=[...new Set(rows.map(r=>r.department))].sort(); const current=deptFilter.value||'all';
+  deptFilter.innerHTML='<option value="all">All departments</option>'+depts.map(d=>`<option value="${d}">${d}</option>`).join(''); deptFilter.value=depts.includes(current)?current:'all';
+  const filtered=deptFilter.value==='all'?rows:rows.filter(r=>r.department===deptFilter.value);
+  document.getElementById('heroKeywords').textContent=rows.length;
+  document.getElementById('heroPriority').textContent=rows.filter(r=>r.priority==='High').length;
+  document.getElementById('heroDept').textContent=depts.length;
+  const impr=rows.reduce((s,r)=>s+r.impressions,0), clicks=rows.reduce((s,r)=>s+r.clicks,0);
+  document.getElementById('mImpressions').textContent=fmt(impr); document.getElementById('mClicks').textContent=fmt(clicks); document.getElementById('mCtr').textContent=impr?fmtPct(clicks/impr):'0%';
+  document.getElementById('mQuickWins').textContent=rows.filter(r=>r.signal.includes('SEO quick win')).length;
+  document.getElementById('mLeaks').textContent=rows.filter(r=>r.signal.includes('CTR leak')).length;
+  const tb=document.getElementById('keywordRows');
+  if(!filtered.length){ tb.innerHTML='<tr><td colspan="10"><div class="empty">No matching keywords yet.</div></td></tr>'; }
+  else tb.innerHTML=filtered.map(r=>{
+    const pc=r.priority==='High'?'p-high':r.priority==='Medium'?'p-med':'p-low';
+    const rank=r.rankCurrent||r.position; const trend=r.trendInterest?`${r.trendInterest}/100`:r.trendGrowth?`+${r.trendGrowth}%`:'-';
+    return `<tr>
+      <td><span class="kw">${escapeHtml(r.keyword)}</span><span class="sub">${escapeHtml(r.page||'No page mapped yet')}</span></td>
+      <td>${pill(r.department,'p-dark')}</td><td>${pill(r.intent,r.intent==='Urgent'?'p-red':r.intent==='High intent'?'p-high':'p-low')}</td>
+      <td><span class="score">${r.score}<span class="bar"><i style="width:${r.score}%"></i></span></span><span class="sub">${r.priority}</span></td>
+      <td>${rank?rank.toFixed(1):'-'} ${r.rankDelta?`<span class="sub">${r.rankDelta>0?'↑ improved':'↓ fell'} ${Math.abs(r.rankDelta)}</span>`:''}</td>
+      <td>${fmt(r.impressions)}</td><td>${r.ctr?fmtPct(r.ctr):(r.impressions?fmtPct(r.clicks/r.impressions):'-')}</td><td>${trend}</td>
+      <td>${escapeHtml(r.signal)}</td><td class="recommend">${escapeHtml(r.recommendation)}</td>
+    </tr>`;
+  }).join('');
+  renderInsights(rows); renderCharts(rows);
+}
+function renderInsights(rows){
+  const box=document.getElementById('insights'); if(!rows.length){box.innerHTML='<div class="empty">Insights will appear after analysis.</div>';return}
+  const high=rows.filter(r=>r.priority==='High'); const leak=rows.filter(r=>r.signal.includes('CTR leak')); const quick=rows.filter(r=>r.signal.includes('SEO quick win')); const topDept=topGroup(rows,'department')[0];
+  const insights=[];
+  if(high[0]) insights.push(['Top keyword to push now',`Start with “${high[0].keyword}”. It has the strongest combined score across demand, rank opportunity, trend and conversion intent.`]);
+  if(topDept) insights.push(['Department focus',`${topDept.name} has the highest opportunity score. Plan content, reels and landing-page updates around this service line first.`]);
+  if(leak.length) insights.push(['CTR leakage detected',`${leak.length} keyword(s) have decent impressions but weak CTR. These need better title, meta description and stronger local CTA.`]);
+  if(quick.length) insights.push(['Quick SEO wins',`${quick.length} keyword(s) are already near page-one/page-two range. These can move faster with internal links, FAQ blocks and fresh content.`]);
+  insights.push(['Next build step', 'After this CSV MVP is validated, connect Google Search Console first. It gives the cleanest keyword-level SEO truth.']);
+  box.innerHTML=insights.map(i=>`<div class="insight"><b>${escapeHtml(i[0])}</b><span>${escapeHtml(i[1])}</span></div>`).join('');
+}
+function topGroup(rows,key){const m={}; rows.forEach(r=>{m[r[key]]=(m[r[key]]||0)+r.score}); return Object.entries(m).map(([name,score])=>({name,score})).sort((a,b)=>b.score-a.score)}
+function renderCharts(rows){
+  const dept = topGroup(rows,'department').slice(0,8); const pr = ['High','Medium','Low'].map(name=>({name,score:rows.filter(r=>r.priority===name).length}));
+  makeChart('deptChart','deptFallback','bar',dept.map(x=>x.name),dept.map(x=>x.score),'Opportunity score');
+  makeChart('priorityChart','priorityFallback','doughnut',pr.map(x=>x.name),pr.map(x=>x.score),'Keywords');
+}
+function makeChart(id,fallback,type,labels,data,label){
+  if(state.charts[id]) state.charts[id].destroy();
+  const el=document.getElementById(id), fb=document.getElementById(fallback);
+  if(!window.Chart || !data.some(Boolean)){el.style.display='none';fb.style.display='block';return}
+  el.style.display='block';fb.style.display='none';
+  state.charts[id]=new Chart(el,{type,data:{labels,datasets:[{label,data,borderWidth:1}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:type==='doughnut'}},scales:type==='bar'?{y:{beginAtZero:true}}:{}}});
+}
+function escapeHtml(s){return String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
+document.getElementById('departmentFilter').addEventListener('change',render);
+document.getElementById('analyzeManual').addEventListener('click',analyze);
+document.getElementById('sortHigh').addEventListener('click',()=>{state.keywords.sort((a,b)=>b.score-a.score);render()});
+document.getElementById('minScore').addEventListener('change',analyze);
+document.getElementById('cityFocus').addEventListener('change',analyze);
+document.getElementById('resetAll').addEventListener('click',()=>{state.gsc=[];state.rank=[];state.ga=[];state.trends=[];state.manual=[];document.querySelectorAll('input[type=file]').forEach(i=>i.value='');document.getElementById('manualKeywords').value='';['gscStatus','rankStatus','gaStatus','trendStatus'].forEach((id,i)=>document.getElementById(id).textContent=['Expected columns: query, clicks, impressions, ctr, position, page','Expected columns: keyword, rank, previous rank, url','Expected columns: landing page, users, sessions, conversions','Expected columns: keyword, interest, growth'][i]);analyze();});
+document.getElementById('exportCsv').addEventListener('click',()=>{
+  if(!state.keywords.length){alert('No keyword recommendations to export yet.');return}
+  const cols=['keyword','department','intent','score','priority','rankCurrent','position','impressions','clicks','ctr','trendInterest','trendGrowth','signal','recommendation','page'];
+  const csv=[cols.join(',')].concat(state.keywords.map(r=>cols.map(c=>`"${String(r[c]??'').replace(/"/g,'""')}"`).join(','))).join('\n');
+  const blob=new Blob([csv],{type:'text/csv'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='sid-finds-keyword-recommendations.csv'; a.click(); URL.revokeObjectURL(a.href);
+});
+document.getElementById('loadSample').addEventListener('click',()=>{
+  state.gsc=parseCSV(`query,clicks,impressions,ctr,position,page
+cardiologist in raipur,420,9200,4.5%,7,/cardiac-care
+kidney specialist raipur,160,7100,2.2%,12,/renal-sciences
+best hospital in raipur,950,18000,5.3%,5,/
+emergency hospital raipur,310,8400,3.7%,9,/emergency
+cancer hospital raipur,90,6900,1.3%,18,/oncology
+neurologist in raipur,120,5200,2.3%,14,/neurosciences
+dialysis center raipur,220,4800,4.6%,8,/dialysis
+chest pain doctor near me,55,2600,2.1%,16,/cardiac-care
+health checkup raipur,145,6200,2.3%,11,/health-checkup
+ambulance service raipur,70,3900,1.8%,21,/emergency`);
+  state.rank=parseCSV(`keyword,rank,previous rank,url
+cardiologist in raipur,7,10,/cardiac-care
+kidney specialist raipur,12,15,/renal-sciences
+best hospital in raipur,5,4,/
+emergency hospital raipur,9,13,/emergency
+cancer hospital raipur,18,19,/oncology
+neurologist in raipur,14,12,/neurosciences
+dialysis center raipur,8,11,/dialysis
+chest pain doctor near me,16,23,/cardiac-care
+health checkup raipur,11,18,/health-checkup
+ambulance service raipur,21,28,/emergency`);
+  state.ga=parseCSV(`landing page,users,sessions,conversions
+/cardiac-care,2100,2600,42
+/renal-sciences,1450,1800,29
+/,5200,6100,64
+/emergency,1200,1550,38
+/oncology,870,990,13
+/neurosciences,980,1210,18
+/dialysis,1100,1340,24
+/health-checkup,1500,1900,31`);
+  state.trends=parseCSV(`keyword,interest,growth
+cardiologist in raipur,74,18
+kidney specialist raipur,82,35
+best hospital in raipur,65,4
+emergency hospital raipur,78,22
+cancer hospital raipur,71,28
+neurologist in raipur,67,11
+dialysis center raipur,79,25
+chest pain doctor near me,85,42
+health checkup raipur,73,31
+ambulance service raipur,80,38`);
+  ['gscStatus','rankStatus','gaStatus','trendStatus'].forEach((id,i)=>document.getElementById(id).innerHTML=`<span class="ok">Loaded sample ${['GSC','RankNow','GA4','Trends'][i]} data</span>`);
+  analyze();
+});
+analyze();
+</script>
+</body>
+</html>
